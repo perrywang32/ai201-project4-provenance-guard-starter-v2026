@@ -45,11 +45,12 @@ Two things worth knowing before you pick numbers:
 ## 1.
 
 <!-- Your criterion. It must name a number. -->
+False positives: Out of 10 examples of known human writing, at most 1 may receive the high-confidence AI label in each of the three trials.
 
 
 
 **Why this target:**
-
+I chose this limit because we don't want the machine to make more than one mistake in misidentifying human writing out of ten samples.
 
 
 ---
@@ -57,10 +58,10 @@ Two things worth knowing before you pick numbers:
 ## 2.
 
 <!-- Your criterion. -->
-
-
+Score spread: The average score for 5 AI examples must be at least 0.15 higher than the average for 5 human examples. 
 
 **Why this target:**
+I chose this difference because 0.15 is a meaningful gap on the 0–1 scale without claiming the detector will be perfectly accurate. I want AI and human examples to show a noticeable average difference, while recognizing that individual scores may still overlap.
 
 
 
@@ -69,11 +70,10 @@ Two things worth knowing before you pick numbers:
 ## 3.
 
 <!-- Your criterion. -->
-
-
+Label coverage: The test set must produce all three labels—human, unsure, and AI—at least 1 time(s) each. 
 
 **Why this target:**
-
+This matters because the test set should have examples of all three and the machine is expected to at least be able to differentiate between them if working correctly. Each label must appear at least once in each trial, to match the template’s three-trial rule.
 
 
 ---
@@ -81,11 +81,11 @@ Two things worth knowing before you pick numbers:
 ## 4.
 
 <!-- Your criterion. -->
-
+Appeals: When I appeal a valid content_id, the status must change to under_review and an appeal entry must appear in the log. 
 
 
 **Why this target:**
-
+This matters because a writer needs a way to challenge a result they believe is wrong, and the log should show that their appeal was received and moved to review.
 
 
 ---
@@ -93,11 +93,10 @@ Two things worth knowing before you pick numbers:
 ## 5.
 
 <!-- Your criterion. -->
-
-
+Bad input: When text is missing, empty, or oversized as in over 400 tokens, the service must return HTTP 400 response with an error message and avoid a server error. 
 
 **Why this target:**
-
+I chose this behavior because it prevents the service from silently scoring only the first 400 tokens of a long submission, and tells the writer why the request wasn’t accepted.
 
 
 ---
