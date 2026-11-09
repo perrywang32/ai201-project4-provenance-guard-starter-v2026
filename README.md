@@ -121,14 +121,105 @@
      two off the response, so leaving them out costs you next unit's
      diagnostics. -->
 
-```bash
-$ curl -X POST http://127.0.0.1:5000/submit \
-  -H "Content-Type: application/json" \
-  -d '{"text": "...", "creator_id": "..."}'
+The three successful `/submit` requests used `creator_id: "test-user"`. The first was a balanced test sample, the second an AI-style sample, and the third a human-written sample. At this milestone, `model_score` is populated; the other scoring and label fields remain placeholders.
+
+**Submission 1 — balanced test sample**
+
+```powershell
+$body = '{"text":"Keaton Wagler is a young basketball guard. He is developing his skills and adjusting to the professional game. Consistency and decision making will help shape his role over time.","creator_id":"test-user"}'
+Invoke-RestMethod -Uri "http://127.0.0.1:5000/submit" -Method Post -ContentType "application/json" -Body $body
 ```
 
 ```json
+{
+  "content_id": "57b29c03c6fe474d9dadc97942cdec39",
+  "guess": null,
+  "confidence": null,
+  "label": null,
+  "model_score": 0.5176,
+  "style_score": null
+}
+```
 
+**Submission 2 — AI-style sample**
+
+```powershell
+$body = '{"text":"Keaton Wagler is a young basketball guard whose game combines scoring, playmaking, and effort on both ends of the court. After playing at Illinois, he now has the opportunity to adjust to the pace and physicality of the NBA with the Los Angeles Clippers. His development will depend on consistency, decision-making, and how well he contributes within the team system. As his career continues, his performances will show how his skills translate to the professional level.","creator_id":"test-user"}'
+Invoke-RestMethod -Uri "http://127.0.0.1:5000/submit" -Method Post -ContentType "application/json" -Body $body
+```
+
+```json
+{
+  "content_id": "bfab2728223545cb9936a87a6f9d38d6",
+  "guess": null,
+  "confidence": null,
+  "label": null,
+  "model_score": 0.8095,
+  "style_score": null
+}
+```
+
+**Submission 3 — human-written sample**
+
+```powershell
+$body = '{"text":"Keaton Wagler is our fifth pick that''s trying to earn a spot on our team. He has shown promising flashes so far and still needs to build up his frame to get better. Our head coach is kinda dumb for not prioritizing playing him to develop his skills and talent as he''s still currently inexperienced professionally.","creator_id":"test-user"}'
+Invoke-RestMethod -Uri "http://127.0.0.1:5000/submit" -Method Post -ContentType "application/json" -Body $body
+```
+
+```json
+{
+  "content_id": "0ff1890deefe49ecb0828c7815500ab1",
+  "guess": null,
+  "confidence": null,
+  "label": null,
+  "model_score": 0.466,
+  "style_score": null
+}
+```
+
+**What the log shows afterwards**
+
+These are the three entries from `logs/audit.jsonl` (also returned by `GET /log?limit=3`):
+
+```json
+{
+  "count": 3,
+  "entries": [
+    {
+      "timestamp": "2026-11-09T05:36:08+00:00",
+      "content_id": "57b29c03c6fe474d9dadc97942cdec39",
+      "creator_id": "test-user",
+      "guess": null,
+      "model_score": 0.5176,
+      "style_score": null,
+      "combined_score": null,
+      "label": null,
+      "status": "decided"
+    },
+    {
+      "timestamp": "2026-11-09T05:39:16+00:00",
+      "content_id": "bfab2728223545cb9936a87a6f9d38d6",
+      "creator_id": "test-user",
+      "guess": null,
+      "model_score": 0.8095,
+      "style_score": null,
+      "combined_score": null,
+      "label": null,
+      "status": "decided"
+    },
+    {
+      "timestamp": "2026-11-09T05:40:05+00:00",
+      "content_id": "0ff1890deefe49ecb0828c7815500ab1",
+      "creator_id": "test-user",
+      "guess": null,
+      "model_score": 0.466,
+      "style_score": null,
+      "combined_score": null,
+      "label": null,
+      "status": "decided"
+    }
+  ]
+}
 ```
 
 **An appeal**
