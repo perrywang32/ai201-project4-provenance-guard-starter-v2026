@@ -58,6 +58,46 @@ WEIGHT_MODEL_SIGNAL = 0.5
 WEIGHT_STYLE_SIGNAL = 0.5
 
 
+# ─── Style signal internals (Milestone 4) ────────────────────────────────────
+# How stylometry.style_signal turns its three raw measures into one 0–1 score.
+# Every raw measure runs "higher = more human"; each is flipped and mapped onto
+# 0–1 with a clamped straight line between two anchors:
+#
+#   raw value at or past the AI anchor     -> 1.0 (fully AI-ish)
+#   raw value at or past the human anchor  -> 0.0 (fully human-ish)
+#
+# ⚠️ These are starting assumptions, not measured values. Why each was picked:
+#   spread  0.20 / 0.65  Coefficient of variation of sentence length. Generated
+#                        prose tends toward even mid-length sentences (CV ~0.2);
+#                        casual human writing mixes 3-word and 40-word ones.
+#   ttr     0.60 / 0.85  Moving-average type-token ratio over STYLE_TTR_WINDOW
+#                        words; lower means more repetition. ⚠️ First trial
+#                        samples all landed 0.89–0.95 at a 25-word window, i.e.
+#                        past the human anchor, so as set this measure adds 0
+#                        to every text. Recalibrate against the four inputs.
+#   punct   0.06 / 0.20  Punctuation marks per word. ~0.06 is little beyond full
+#                        stops; ~0.20 is dense commas, dashes, brackets.
+# Record what the four calibration inputs show in the README, then adjust.
+
+STYLE_ANCHORS = {
+    "spread": (0.20, 0.65),
+    "ttr":    (0.60, 0.85),
+    "punct":  (0.06, 0.20),
+}
+
+# Spread is the most-cited cue, punctuation the shakiest (some models lean hard
+# on em dashes, which pushes it the "human" way). Must sum to 1.0.
+STYLE_WEIGHTS = {"spread": 0.5, "ttr": 0.3, "punct": 0.2}
+
+# Type-token ratio falls as text gets longer, so it is always measured over a
+# fixed-size sliding window. Text shorter than one window is "too short to
+# judge" for that measure (neutral 0.5) — never a different formula.
+STYLE_TTR_WINDOW = 25
+
+# Below this many words, punctuation density is too noisy to count (neutral).
+STYLE_MIN_WORDS_PUNCT = 20
+
+
 # ─── Thresholds (Milestone 5) ────────────────────────────────────────────────
 # Where one label becomes another. Scores run 0.0 (confidently human) to 1.0
 # (confidently AI).

@@ -61,29 +61,23 @@
 
 ### Signal two — the style signal
 
-**What it measures:**
+**What it measures:** Sentence-length spread (coefficient of variation), moving-average type-token ratio over 25-word windows, and punctuation marks per word.
 
-**Why that might differ between human and AI writing:**
+**Why that might differ between human and AI writing:** The heuristic assumes generated prose tends to use more even sentence lengths and a narrower vocabulary, while human writing may vary more. These are tendencies, not reliable authorship rules.
 
-**What it can't see:**
+**What it can't see:** It does not understand the text or know who wrote it. Editing sentence breaks, adding quotations, or changing punctuation can change its score without changing the meaning.
+
+**Observed limitation:** In my four calibration samples, the TTR component scored 0.0 for all four because each raw value exceeded the 0.85 human anchor. The casual human sample scored above both AI samples; the plain-human and lightly-edited-AI scores were nearly tied (0.6603 versus 0.6604). The style signal did not meaningfully separate this small test set in the intended direction.
 
 ### The combining rule
 
-<!-- Write the rule in words, then give the numbers. What happens when the two
-     signals disagree? -->
+**The rule:** I use an equal weighted average of the model and style scores. When they disagree, the combined score falls between them, treating disagreement as uncertainty.
 
-**The rule:**
+**The numbers:** Model weight = 0.50; style weight = 0.50. Inside the style signal, sentence spread = 0.50, TTR = 0.30, and punctuation = 0.20. The style anchors are in config.py.
 
-**The numbers:**
+**Where it lives:** scoring.py::combine_signals
 
-**Where it lives:** `scoring.py::combine_signals`
-
-<!-- ⚠️ The grader checks your code against that line. If your rule lives
-     somewhere else, say where. -->
-
-**A case where my two signals split, and what my rule does with it:**
-
-
+**A case where my two signals split, and what my rule does with it:** For the casual human sample, the model score was 0.466 and the style score was 0.6817. The equal average produced 0.57385, between the two signal scores. The style signal leaned AI on this human-written sample, which is a limitation I need to keep in mind.
 
 ---
 
@@ -121,7 +115,7 @@
      two off the response, so leaving them out costs you next unit's
      diagnostics. -->
 
-The three successful `/submit` requests used `creator_id: "test-user"`. The first was a balanced test sample, the second an AI-style sample, and the third a human-written sample. At this milestone, `model_score` is populated; the other scoring and label fields remain placeholders.
+These three submissions are the Milestone 3 baseline, from before the second signal was connected. They used creator_id = test-user; model_score was populated, while style_score and combined_score were still placeholders.
 
 **Submission 1 — balanced test sample**
 
@@ -221,6 +215,21 @@ These are the three entries from `logs/audit.jsonl` (also returned by `GET /log?
   ]
 }
 ```
+
+**Milestone 4 calibration results**
+
+These are the four actual POST /submit responses after both signals were connected. The labels and confidence are still placeholders for Milestone 5.
+
+| Sample | content_id | model_score | style_score | combined_score |
+|---|---|---:|---:|---:|
+| Clearly AI | 526874a4113e4baeb427e6f306b93a2e | 0.8239 | 0.6244 | 0.72415 |
+| Human, casual | 8a4f5bc3a8df4d83975e3c1de1bec63e | 0.466 | 0.6817 | 0.57385 |
+| Lightly edited AI | 5e064d8845ff4047ae70e49716c7b2b0 | 0.7802 | 0.6604 | 0.7203 |
+| Plain conventional human | c06a5bfaa03845d981ce361c1ce30636 | 0.6122 | 0.6603 | 0.63625 |
+
+The combined score put the clearly AI sample above the casual human sample. The plain conventional human sample scored closer to the AI examples, so it is an important edge case.
+
+The audit-log block above is the earlier Milestone 3 log. After Milestone 4, run GET /log?limit=4 and replace or supplement that block with the four newest entries showing model_score, style_score, and combined_score.
 
 **An appeal**
 
@@ -420,3 +429,4 @@ that produced it:
 ---
 
 📖 **How to run this project: [RUNNING.md](RUNNING.md)**
+
