@@ -39,7 +39,22 @@
 <!-- The path a submission takes, from arriving to the label a reader sees.
      Six or seven steps — this is the trace you wrote in Milestone 1. -->
 
-
+1. Submission path
+1. A writer sends [text] and [creator_id] to POST /submit.
+2. app.py receives the request and reads the JSON.
+3. detector.model_signal(text) checks perplexity to estimate how predictable the text is to the language model, converts that into a score from 0 to 1; higher means more AI-like. Its blind spot is that predictable writing can still be human-written. The signal measures predictability, not authorship.
+4. stylometry.style_signal(text) checks the text’s shape: how much sentence lengths vary, how much vocabulary repeats, and how punctuation is used. AI writing may have more regular sentence lengths and less vocabulary variation, though that isn’t true of every writer. The signal can’t understand meaning or determine who wrote something; edits to sentence structure or punctuation can change its score.
+5. scoring combines the scores and chooses a an ai, human, or unsure guess and a plain-language label.
+6. audit.log_decision(...) records the decision in logs/audit.jsonl.
+7. The service returns content_id, guess, confidence (the combined score), label, model_score, and style_score to the writer. Staff can inspect recent entries with GET /log.
+2. The two signals and their blind spots
+- Model signal: It measures predictability. It can mistake predictable writing for AI-like because it cannot determine predictable writing as human-written.
+- Style signal: It measures sentence-length variation, vocabulary repetition, and punctuation. It cannot determine the text’s meaning or who wrote it, and changing sentence lengths or punctuation can affect its score.
+3. False-positive example
+A writer submits plain human writing with short, conventional sentences. The system gives it an AI-like score and shows the writer an AI-like label. The writer can appeal by sending the content_id from the submission response and their reason for disputing the result to POST /appeal. The system should record the appeal and set the status to under_review.
+4. Endpoint shapes
+- POST /submit receives: text, creator_id. It returns: content_id, guess, confidence, label, model_score, style_score.
+- POST /appeal receives: content_id, reasoning. It should confirm the appeal and record under_review.
 
 ---
 
@@ -53,12 +68,11 @@
 
 ### Signal one — the model signal
 
-**What it measures:**
+**What it measures:** GPT-2 perplexity: how predictable or surprising the next words in the text are to the model. detector.py maps that value to a 0–1 model score, where higher means more likely AI.
 
-**Why that might differ between human and AI writing:**
+**Why that might differ between human and AI writing:** AI-generated text may follow patterns that a language model finds predictable. Human writing can use less predictable wording or sentence choices. This is only a heuristic; the scores can overlap.
 
-**What it can't see:**
-
+**What it can't see:** It cannot verify who wrote the text or understand the writer's intent. Predictable human writing can look AI-like, and edited or unusual AI writing can look more human. Topic and writing style can also affect predictability.
 ### Signal two — the style signal
 
 **What it measures:** Sentence-length spread (coefficient of variation), moving-average type-token ratio over 25-word windows, and punctuation marks per word.
@@ -230,6 +244,60 @@ These are the four actual POST /submit responses after both signals were connect
 The combined score put the clearly AI sample above the casual human sample. The plain conventional human sample scored closer to the AI examples, so it is an important edge case.
 
 The audit-log block above is the earlier Milestone 3 log. After Milestone 4, run GET /log?limit=4 and replace or supplement that block with the four newest entries showing model_score, style_score, and combined_score.
+
+**Milestone 4 audit log**
+
+This is the actual response from GET /log?limit=4 after the four calibration submissions:
+
+    {
+      "count": 4,
+      "entries": [
+        {
+          "combined_score": 0.72415,
+          "content_id": "526874a4113e4baeb427e6f306b93a2e",
+          "creator_id": "test-user",
+          "guess": null,
+          "label": null,
+          "model_score": 0.8239,
+          "status": "decided",
+          "style_score": 0.6244,
+          "timestamp": "2026-11-09T07:18:56+00:00"
+        },
+        {
+          "combined_score": 0.57385,
+          "content_id": "8a4f5bc3a8df4d83975e3c1de1bec63e",
+          "creator_id": "test-user",
+          "guess": null,
+          "label": null,
+          "model_score": 0.466,
+          "status": "decided",
+          "style_score": 0.6817,
+          "timestamp": "2026-11-09T07:18:56+00:00"
+        },
+        {
+          "combined_score": 0.72029999999999999,
+          "content_id": "5e064d8845ff4047ae70e49716c7b2b0",
+          "creator_id": "test-user",
+          "guess": null,
+          "label": null,
+          "model_score": 0.7802,
+          "status": "decided",
+          "style_score": 0.6604,
+          "timestamp": "2026-11-09T07:18:57+00:00"
+        },
+        {
+          "combined_score": 0.63625,
+          "content_id": "c06a5bfaa03845d981ce361c1ce30636",
+          "creator_id": "test-user",
+          "guess": null,
+          "label": null,
+          "model_score": 0.6122,
+          "status": "decided",
+          "style_score": 0.6603,
+          "timestamp": "2026-11-09T07:18:57+00:00"
+        }
+      ]
+    }
 
 **Clearly AI**
 
