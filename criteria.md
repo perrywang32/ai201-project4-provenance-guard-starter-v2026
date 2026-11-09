@@ -58,7 +58,7 @@ I chose this limit because we don't want the machine to make more than one mista
 ## 2.
 
 <!-- Your criterion. -->
-Score spread: The average score for 5 AI examples must be at least 0.15 higher than the average for 5 human examples. 
+Score spread: The average combined scores for 5 AI examples must be at least 0.15 higher than the average for 5 human examples in each of the three trials. 
 
 **Why this target:**
 I chose this difference because 0.15 is a meaningful gap on the 0–1 scale without claiming the detector will be perfectly accurate. I want AI and human examples to show a noticeable average difference, while recognizing that individual scores may still overlap.
@@ -70,7 +70,7 @@ I chose this difference because 0.15 is a meaningful gap on the 0–1 scale with
 ## 3.
 
 <!-- Your criterion. -->
-Label coverage: The test set must produce all three labels—human, unsure, and AI—at least 1 time(s) each. 
+Label coverage: The test set must produce all three labels—human, unsure, and AI—at least 1 time(s) each as each lael must appear at least once in each trial to match the template's three-trial rule. 
 
 **Why this target:**
 This matters because the test set should have examples of all three and the machine is expected to at least be able to differentiate between them if working correctly. Each label must appear at least once in each trial, to match the template’s three-trial rule.
