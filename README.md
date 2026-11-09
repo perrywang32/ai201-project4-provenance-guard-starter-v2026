@@ -39,14 +39,13 @@
 <!-- The path a submission takes, from arriving to the label a reader sees.
      Six or seven steps — this is the trace you wrote in Milestone 1. -->
 
-1. A writer's client sends a JSON request with text and creator_id to POST /submit.
-2. app.py validates the JSON, required fields, and text length. Invalid input receives a 400 response.
-3. detector.model_signal(text) uses GPT-2 perplexity to produce model_score; higher means more likely AI.
-4. stylometry.style_signal(text) measures sentence-length spread, vocabulary variety, and punctuation to produce style_score.
-5. scoring.combine_signals(model_score, style_score) combines the two scores into combined_score using equal weights.
-6. audit.log_decision(...) records the content_id, creator_id, signal scores, combined score, and status in logs/audit.jsonl.
-7. app.py returns the content_id and scores. The guess, confidence, and label fields are still placeholders in Milestone 4; Milestone 5 will add the label mapping. Recent records are available through GET /log.
----
+1. A writer's client sends JSON containing `text` and `creator_id` to `POST /submit`.
+2. `app.py` validates the request, required fields, and text length. Invalid requests receive an error response.
+3. `detector.model_signal(text)` uses GPT-2 perplexity to produce `model_score`; higher means more likely AI.
+4. `stylometry.style_signal(text)` measures sentence-length spread, vocabulary variety, and punctuation to produce `style_score`.
+5. `scoring.combine_signals(model_score, style_score)` takes their equal-weight average as `combined_score`.
+6. `scoring.score_to_label(combined_score)` maps the result to a human, unsure, or AI label. The response includes the scores, guess, confidence, label, and `content_id`.
+7. `audit.log_decision(...)` records the decision in `logs/audit.jsonl`. `GET /log` returns recent records. A writer can send `POST /appeal` with a `content_id` and reasoning; a valid appeal is added to the log and changes the status to `under_review` while the original decision remains recorded.
 
 ## Signals and Scoring
 
@@ -102,6 +101,7 @@
 <!-- It's the hardest of the three. It has to admit uncertainty without
      sounding like an accusation, because the person reading it may well have
      written every word themselves. -->
+It says plainly that the system could not decide, without accusing the writer or presenting a score as proof. The human and AI labels also call the result an estimate, because these signals cannot establish who authored a text.
 
 
 
@@ -349,44 +349,61 @@ This is the actual response from GET /log?limit=4 after the four calibration sub
       "style_score": 0.6603
     }
 
+**Milestone 5 — final label results**
 
-**An appeal**
+After rewriting the plain conventional human sample, I submitted the four calibration samples again. The latest four entries in `GET /log?limit=10` are timestamped `2026-11-09T10:18:05+00:00`.
 
-```bash
-$ curl -X POST http://127.0.0.1:5000/appeal \
-  -H "Content-Type: application/json" \
-  -d '{"content_id": "...", "reasoning": "..."}'
+| Sample | Model score | Style score | Combined score / confidence | Guess |
+|---|---:|---:|---:|---|
+| Clearly AI | 0.8239 | 0.6244 | 0.72415 | `ai` |
+| Human, casual | 0.466 | 0.6817 | 0.57385 | `unsure` |
+| Lightly edited AI | 0.7802 | 0.6604 | 0.7203 | `ai` |
+| Plain conventional human, rewritten | 0.4938 | 0.1693 | 0.33155 | `human` |
+
+The first three label outcomes and the rewritten human outcome show that all three label variants are reachable. An earlier version of the conventional-human sample scored `0.36455` and was labeled `unsure`; after rewriting it, the score was `0.33155` and the label was `human`. The log also contains older submissions, which is why its total count is 10.
+
+**Appeal request**
+
+```powershell
+$body = @{ content_id = "8a4f5bc3a8df4d83975e3c1de1bec63e"; reasoning = "I wrote this sample myself. The result seems to misread my informal wording." } | ConvertTo-Json -Compress
+Invoke-RestMethod -Uri "http://127.0.0.1:5000/appeal" -Method Post -ContentType "application/json" -Body $body
 ```
+**Appeal response**
+
+```text
+content_id: 8a4f5bc3a8df4d83975e3c1de1bec63e
+message: Thanks, your appeal has been received. A person will review this result. The original decision stays on record until then.
+status: under_review
+```
+
+**Appeal log entry**
+
+The `GET /log?limit=10` output included this appeal event:
 
 ```json
-
+{
+  "content_id": "8a4f5bc3a8df4d83975e3c1de1bec63e",
+  "creator_id": "test-user",
+  "event": "appeal",
+  "reasoning": "I wrote this sample myself. The result seems to misread my informal wording.",
+  "status": "under_review",
+  "timestamp": "2026-11-09T08:03:58+00:00"
+}
 ```
-
-**What the log shows afterwards**
-
-```bash
-$ curl "http://127.0.0.1:5000/log?limit=3"
-```
-
-```json
-
-```
-
----
 
 ## How I Used AI
 
-**Moment 1**
+**Moment 1 — designing the style signal**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* Help understanding what to implement in `style_signal`, how to combine the three measurements, and how to test the result against the calibration examples.
+- *What came back:* An explanation of sentence-length spread, type-token ratio, and punctuation density, plus guidance to put them on a comparable 0–1 scale and make higher scores consistently mean more AI-like.
+- *What I changed:* I implemented and tuned the function in `stylometry.py`, tested all four samples, and recorded the limitation that the TTR component scored 0.0 for all four because their raw values were above the configured anchor.
 
-**Moment 2**
+**Moment 2 — connecting labels and appeals**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* Help understanding how to return reader-facing labels from `/submit`, write the three label variants, and test an appeal through the API.
+- *What came back:* Example wording and a step-by-step explanation of how the combined score maps to a label, how `/appeal` uses a `content_id`, and how to verify the status in `GET /log`.
+- *What I changed:* I implemented the label mapping and appeal flow, chose the final wording and score ranges, rewrote the plain conventional human sample, and ran the submissions and appeal myself. The results and appeal response above are the outputs I recorded.
 
 <!-- ═══════════════════════ UNIT 8 — THE TEST ═══════════════════════ -->
 

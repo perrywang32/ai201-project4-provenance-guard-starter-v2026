@@ -52,7 +52,10 @@ def combine_signals(model_score: float, style_score: float) -> float:
     The weights in config.py are placeholders. Change them, or ignore them and
     write a different rule.
     """
-    # TODO: replace this
+    # The rule (see README "The combining rule"): an equal-weighted average.
+    # When the signals disagree the result lands between them, so a split
+    # pulls the score toward "unsure" — disagreement is treated as uncertainty.
+    # Weights live in config.py (WEIGHT_MODEL_SIGNAL / WEIGHT_STYLE_SIGNAL).
     return (
         config.WEIGHT_MODEL_SIGNAL * model_score
         + config.WEIGHT_STYLE_SIGNAL * style_score

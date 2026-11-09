@@ -278,14 +278,60 @@ def appeal():
     to the person on the other end. It's the only thing standing between a
     wrong accusation and nothing at all.
     """
-    payload = request.get_json(silent=True) or {}
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"error": "invalid_json", "message": "Send a JSON object."}), 400
 
-    # TODO: delete this and build the route.
+    content_id = payload.get("content_id")
+    reasoning = payload.get("reasoning")
+
+    if not isinstance(content_id, str) or not content_id.strip():
+        return jsonify({"error": "invalid_content_id", "message": "content_id is required."}), 400
+    if not isinstance(reasoning, str) or not reasoning.strip():
+        return jsonify({
+            "error": "invalid_reasoning",
+            "message": "Please tell us briefly why you think the result is wrong.",
+        }), 400
+
+    content_id = content_id.strip()
+    reasoning = reasoning.strip()
+    if len(reasoning) > MAX_APPEAL_CHARS:
+        return jsonify({
+            "error": "reasoning_too_long",
+            "message": f"Please keep your reasoning under {MAX_APPEAL_CHARS} characters.",
+        }), 400
+
+    # The original decision is the entry with a guess and no "event" field —
+    # entries_for also returns any earlier appeals for the same id.
+    entries = audit.entries_for(content_id)
+    decision = next((e for e in entries if "event" not in e), None)
+    if decision is None:
+        audit.log_rejection(
+            creator_id="unknown", reason="appeal_unknown_content_id", content_id=content_id,
+        )
+        return jsonify({
+            "error": "not_found",
+            "message": "We couldn't find a submission with that content_id. "
+                       "Check it matches the one from your result.",
+        }), 404
+
+    appeal_entry = audit.log_appeal(
+        content_id=content_id,
+        creator_id=decision.get("creator_id", "unknown"),
+        reasoning=reasoning,
+    )
+
     return jsonify({
-        "error": "not_implemented",
-        "message": "POST /appeal isn't built yet — see the TODO in app.py.",
-        "you_sent": payload,
-    }), 501
+        "content_id": content_id,
+        "status": appeal_entry["status"],
+        "message": "Thanks, your appeal has been received. A person will review "
+                   "this result. The original decision stays on record until then.",
+    })
+
+
+# Long enough for a real explanation, short enough that /appeal can't be used
+# to stuff the log.
+MAX_APPEAL_CHARS = 2000
 
 
 # ── Already works ─────────────────────────────────────────────────────────────
