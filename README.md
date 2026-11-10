@@ -411,23 +411,26 @@ The `GET /log?limit=10` output included this appeal event:
 
 ## Rate Limiting
 
-**My limits:** ___ per minute, ___ per day
+**My limits:** 10 per minute, 200 per day
 
 **Why those numbers and not others:**
 <!-- Think about two people: a real writer submitting their own work a few
      times an hour, and a script sending a thousand variations to map your
      thresholds. Your numbers have to be liveable for the first and hostile to
      the second. -->
+These limits leave room for normal writing and testing while slowing down scripts that send many submissions quickly. In my 15-request flood test, the first 10 requests succeeded and the next 5 were rate-limited.
 
 **What a caller counts as:** <!-- per address, or per creator_id? They fail
 differently — one script can look like a thousand callers, and one household
 can look like one. -->
+Requests are counted by `creator_id`. The flood test sent all 15 requests as `flood_tester`, so they shared the same limit.
 
 **The run of status codes when I pushed past it:**
 
 <!-- python run_attacks.py --flood 15 -->
 
-```
+```text
+200 200 200 200 200 200 200 200 200 200 429 429 429 429 429
 
 ```
 
