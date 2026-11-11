@@ -997,6 +997,7 @@ Each valid appeal returned `under_review`, and each appears in the audit log as 
 ## The Improvement
 
 **What I changed:**
+I changed the HUMAN_THRESHOLD to 0.5 and kept AI_THRESHOLD at 0.65 to see if more unsure can be identified as human or not.
 
 **Which diagnosis pointed at it:**
 
