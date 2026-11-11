@@ -871,20 +871,13 @@ The first five entries are the AI-generated group; the next five are the human-w
 ]
 ```
 
-### Criterion 4 — appeal, one earlier manual trial
+### Criterion 4 — appeals, three manual trials
 
-The earlier manual test passed once. Two more manual trials are still needed for the three-trial criterion.
+Each valid appeal returned `under_review`, and each appears in the audit log as an `appeal` event.
 
-```text
-POST /appeal request:
-content_id: 8a4f5bc3a8df4d83975e3c1de1bec63e
-reasoning: I wrote this sample myself. The result seems to misread my informal wording.
+**Trial 1 — earlier appeal**
 
-Response:
-status: under_review
-message: Thanks, your appeal has been received. A person will review this result. The original decision stays on record until then.
-
-GET /log appeal entry:
+```json
 {
   "content_id": "8a4f5bc3a8df4d83975e3c1de1bec63e",
   "creator_id": "test-user",
@@ -892,6 +885,32 @@ GET /log appeal entry:
   "reasoning": "I wrote this sample myself. The result seems to misread my informal wording.",
   "status": "under_review",
   "timestamp": "2026-11-09T08:03:58+00:00"
+}
+```
+
+**Trial 2 — fresh submission appeal**
+
+```json
+{
+  "content_id": "7e2e639d2e064a7cbd8d265e9dd9b54f",
+  "creator_id": "test-user",
+  "event": "appeal",
+  "reasoning": "I wrote this sample myself; I am testing the appeal workflow.",
+  "status": "under_review",
+  "timestamp": "2026-11-11T05:18:21+00:00"
+}
+```
+
+**Trial 3 — fresh submission appeal**
+
+```json
+{
+  "content_id": "d52310e5ab004870b88d39c040e160f2",
+  "creator_id": "test-user",
+  "event": "appeal",
+  "reasoning": "I wrote this sample myself; I am testing the appeal workflow.",
+  "status": "under_review",
+  "timestamp": "2026-11-11T05:23:52+00:00"
 }
 ```
 
