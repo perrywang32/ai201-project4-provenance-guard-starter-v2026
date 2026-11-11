@@ -963,7 +963,33 @@ Each valid appeal returned `under_review`, and each appears in the audit log as 
                         signal at 0.6, so it dragged the whole score down."
 
      Look for a pattern. Five failures on one signal is one problem, not five. -->
+### Missed criteria
 
+- **Criterion 1 — MISSED:** Two of ten human samples were labeled AI in every trial. The Clippers paragraph scored 0.7799 combined (model 0.8377, style 0.7221); the Rams paragraph scored 0.69495 (model 0.846, style 0.5439). Both signals scored these human samples as AI-like, and the combined score crossed the AI-label threshold.
+
+- **Criterion 2 — MISSED:** The AI samples averaged 0.48119, while the human samples averaged 0.50578. Their scores overlapped: one AI sample scored 0.33385, while one human sample scored 0.7799. The model and style signals did not separate these samples enough for the combined score to meet my target.
+
+- **Criterion 3 — MISSED:** All three trials returned `unsure, unsure, ai`; none returned `human`. My human sample scored 0.57385 and mapped to `unsure`, so these inputs did not reach the human-label range.
+
+### Broken attacks
+
+- **EV01, EV02, EV03, EV06, EV07, EV09 — BROKE:** These AI evasion inputs returned `unsure` or `human`. Their typos, altered sentence lengths, quotation, punctuation, or human-written opening affected the signals’ measurements and pulled the combined score out of the AI-label range.
+
+- **EV04 — BROKE:** Unusual wording raised the model score to 0.6114, but the combined score was 0.5989 and the label stayed `unsure`. The combining and label-mapping stages did not produce an AI label.
+
+- **EV05 — BROKE:** The heavy editing pass scored low on both signals (model 0.3212, style 0.0418), resulting in a human label. Both signals read the edited AI text as human-like.
+
+- **EV08 — BROKE:** Text below the model’s token window received a low model score (0.2452); the combined score was 0.4516 and the result was `unsure`. The model signal did not identify the short AI text.
+
+- **FP02, FP03, FP05 — BROKE:** Formal, careful, and technical human writing was labeled AI. Their model scores were 0.7387, 0.8051, and 0.8005; the style scores also contributed to combined scores above the AI-label threshold. This repeats the false-positive pattern in Criterion 1.
+
+- **PI02 — BROKE:** The input requested a human classification and received `human` with a combined score of 0.1022. The result matches the requested label; the report alone does not prove the instruction itself caused it.
+
+- **MF03, MF04 — BROKE:** Control-character-only and punctuation-only inputs received 200 responses instead of being rejected. The route accepted those inputs and passed them into scoring.
+
+- **MF07 — BROKE:** Right-to-left text received an AI label with a combined score of 0.7032. Right-to-left writing is valid text, so the concern is the AI classification, not that the route accepted it.
+
+- **FL01_01–FL01_10 — BROKE per row:** These first ten flood submissions received 200 because the configured limit allows ten requests per minute. Requests 11 and 12 received 429, showing the limiter stopped the next submissions at its configured boundary.
 
 
 ---
