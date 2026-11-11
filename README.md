@@ -996,22 +996,57 @@ Each valid appeal returned `under_review`, and each appears in the audit log as 
 
 ## The Improvement
 
-**What I changed:**
-I changed the HUMAN_THRESHOLD to 0.5 and kept AI_THRESHOLD at 0.65 to see if more unsure can be identified as human or not.
+### Change and outcome
+
+I changed `HUMAN_THRESHOLD` from `0.35` to `0.50` and left `AI_THRESHOLD` at `0.65`. The change moved many attack results toward the human label, but Criterion 3 still produced no human label, and Criterion 1 still had two high-confidence AI labels among the ten human samples. The threshold change did not meet those targets; it shifted classifications and needs to be weighed against the risk of mislabeling AI text as human.
 
 **Which diagnosis pointed at it:**
+Criterion 3 diagnosis: The label mapping uses HUMAN_THRESHOLD = 0.35, so scores at or above 0.35 remain outside the human range. My human test sample scored 0.57385 and was labeled unsure. I raised the cutoff to 0.50 to test whether widening the human range improved label coverage. It did not move that sample into human; its score was still above the new cutoff.
+## Attack Run — After
 
-### Attack Run — After
+Command: `python run_attacks.py --set .\attack_set\attack_set --label after`
 
-<!-- Same format. `run_attacks.py --label after` -->
+| Attack IDs | HTTP result | Detector guess |
+|---|---:|---|
+| EV01–EV03 | 200 | human |
+| EV04 | 200 | unsure |
+| EV05–EV09 | 200 | human |
+| EV10 | 200 | ai |
+| FP01 | 200 | human |
+| FP02–FP03 | 200 | ai |
+| FP04 | 200 | unsure |
+| FP05 | 200 | ai |
+| FP06–FP07 | 200 | unsure |
+| FP08 | 200 | human |
+| PI01–PI02 | 200 | human |
+| PI03 | 200 | unsure |
+| PI04–PI06 | 200 | human |
+| MF01–MF02 | 400 | — |
+| MF03–MF04 | 200 | human |
+| MF05–MF06 | 400 | — |
+| MF07 | 200 | ai |
+| MF08 | 400 | — |
+| RQ01–RQ12 | 400 | — |
+| FL01_01–FL01_10 | 200 | human |
+| FL01_11–FL01_12 | 429 | — |
 
+The run reported `auto-marked BROKE: 0` and `left for you: 56`. I still need to mark each attack HELD or BROKE by comparing its observed behavior with the attack’s expected outcome.
+## Run Log and Verdicts — After
 
+Command: `python run_eval.py --label after`
+
+| Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
+|---|---|---|---|---|---|
+| 1. My writing / false positives | At most 1/10 human samples labeled high-confidence AI | 2/10 | 2/10 | 2/10 | MISSED |
+| 2. Score spread | Mean AI score at least 0.15 above mean human score | AI 0.48119; human 0.50578; difference -0.02459 | Same | Same | MISSED |
+| 3. Label coverage | All three labels appear in each trial | unsure, unsure, ai | unsure, unsure, ai | unsure, unsure, ai | MISSED |
+| 5. Bad input | Missing, empty, and over-limit text return HTTP 400 | 400, 400, 400 | 400, 400, 400 | 400, 400, 400 | MET |
 
 **Did it help, and how do I know:**
 
 <!-- Widening the unsure band usually fixes one problem and creates another.
      Reporting that trade honestly is worth full credit. -->
-
+Partially. Raising HUMAN_THRESHOLD from 0.35 to 0.50 moved many attack results toward human, but it did not fix Criterion 3: the test labels were still unsure, unsure, ai in all three trials. Criterion 1 also remained MISSED, with two of ten samples labeled ai each trial.
 
 
 ---
@@ -1020,7 +1055,7 @@ I changed the HUMAN_THRESHOLD to 0.5 and kept AI_THRESHOLD at 0.65 to see if mor
 
 <!-- For each attack still getting through and each criterion still missed:
      what you'd do, and why you stopped. -->
-
+Criterion 3 still has no human result in its test set. The human sample scored 0.57385, above the new 0.50 cutoff, so it stayed unsure. Criterion 1 still exceeds its false-positive target. I stopped after testing this one threshold change; fixing the remaining issues would require another measured change and rerun.
 
 
 **The trade I'd make if this ran for real:**
@@ -1028,7 +1063,7 @@ I changed the HUMAN_THRESHOLD to 0.5 and kept AI_THRESHOLD at 0.65 to see if mor
 <!-- Two sentences. Fewer wrong accusations means more AI text getting through.
      Say which way you'd go and WHO PAYS FOR IT. -->
 
-
+Raising the human cutoff could reduce “unsure” results for real human writers, but it also risks labeling AI-written text as human. In my test, more attack inputs received the human label, while the false-positive criterion still missed its target. If this ran for real, I’d lean toward avoiding a confident accusation against a human writer, even if that meant more AI text passed as human. Writers and reviewers would bear that tradeoff.
 
 <!-- ═════════════════════════════════════════════════════════════════════
 
